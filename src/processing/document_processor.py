@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Document processing module for the RAG system."""
 
 import hashlib
@@ -18,10 +19,33 @@ from ..database.sqlite_vector_db import SQLiteVectorDB
 from .rag_document import RAGDocument
 from .pdf_processor import PDFProcessor
 from .image_processor import ImageProcessor
+=======
+from typing import List, Optional, Dict, Any, Tuple
+import PyPDF2
+import io
+import os
+from pathlib import Path
+import pytesseract
+from pdf2image import convert_from_path
+import cv2
+import numpy as np
+from src.processing.rag_document import RAGDocument
+from src.processing.pdf_processor import PDFProcessor
+from src.processing.image_processor import ImageProcessor
+import json
+import csv
+import pandas as pd
+import docx
+from PIL import Image
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
+>>>>>>> 8f39c0cbc19721b9785a7f78d10722be3f0eb339
 
 class DocumentProcessor:
     """Process different types of documents and convert them to RAGDocument objects."""
     
+<<<<<<< HEAD
     def __init__(self, db: Optional[SQLiteVectorDB] = None):
         """Initialize the document processor.
         
@@ -34,6 +58,10 @@ class DocumentProcessor:
         self.chunk_overlap = DOC_CONFIG['chunk_overlap']
         self.supported_formats = DOC_CONFIG['supported_formats']
         self.max_file_size = DOC_CONFIG['max_file_size']
+=======
+    def __init__(self):
+        """Initialize the document processor."""
+>>>>>>> 8f39c0cbc19721b9785a7f78d10722be3f0eb339
         self.pdf_processor = PDFProcessor()
         self.image_processor = ImageProcessor()
     
@@ -329,6 +357,7 @@ class DocumentProcessor:
         except Exception as e:
             raise ValueError(f"Error processing Google Doc {url}: {str(e)}")
 
+<<<<<<< HEAD
     def _validate_file(self, file_path: str) -> bool:
         """Validate if a file can be processed.
         
@@ -501,6 +530,8 @@ class DocumentProcessor:
         query_embedding = self.model.encode(query).tolist()
         return await self.db.search_documents(query_embedding, limit)
 
+=======
+>>>>>>> 8f39c0cbc19721b9785a7f78d10722be3f0eb339
 # Example usage
 if __name__ == "__main__":
     # Initialize the document processor
