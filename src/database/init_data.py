@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 
 from ..processing.rag_document import RAGDocument
 from ..database.postgres_vector_db import PostgreSQLVectorDB
+from ..database.ingestion_log import ingestion_log
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -23,7 +24,8 @@ def load_initial_content() -> List[Dict[str, Any]]:
                 "source": "Piaget's Psychology of Intelligence",
                 "year": "1947",
                 "type": "book_excerpt",
-                "category": "developmental_psychology"
+                "category": "developmental_psychology",
+                "filename": "piaget_cognitive_development.txt"
             }
         },
         {
@@ -34,7 +36,8 @@ def load_initial_content() -> List[Dict[str, Any]]:
                 "source": "Piaget's Psychology of Intelligence",
                 "year": "1947",
                 "type": "book_excerpt",
-                "category": "developmental_psychology"
+                "category": "developmental_psychology",
+                "filename": "piaget_schemas.txt"
             }
         }
     ]
@@ -52,25 +55,35 @@ def init_database_content() -> None:
         # Get initial content
         content = load_initial_content()
         
-        # Create RAG documents
-        documents = []
+        # Create RAG documents and add to database
         for item in content:
             doc = RAGDocument(text=item["text"], metadata=item["metadata"])
-            documents.append(doc)
+            
+            # Add to vector database
+            doc_ids = vector_db.add_documents([doc])
+            if not doc_ids:
+                logger.error(f"Failed to add document: {item['metadata']['title']}")
+                continue
+                
+            doc_id = doc_ids[0]
+            
+            # Create processed file path
+            filename = item["metadata"]["filename"]
+            processed_path = os.path.join("initial_content", filename)
+            
+            # Add to ingestion log
+            ingestion_log.add_document(
+                filename=filename,
+                doc_id=doc_id,
+                metadata=item["metadata"],
+                processed_path=processed_path
+            )
+            
+            logger.info(f"Added document: {item['metadata']['title']} (ID: {doc_id})")
         
-        # Add documents to database
-        logger.info("Adding initial content to database...")
-        doc_ids = vector_db.add_documents(documents)
-        
-        logger.info(f"Successfully added {len(doc_ids)} documents to database")
-        
-        # Verify content was added
-        for doc_id in doc_ids:
-            doc = vector_db.get_document(doc_id)
-            if doc:
-                logger.info(f"Verified document {doc_id}: {doc.metadata.get('title')}")
-            else:
-                logger.warning(f"Could not verify document {doc_id}")
+        # Generate and save ingestion report
+        ingestion_log.save_report()
+        logger.info("Database initialization complete")
                 
     except Exception as e:
         logger.error(f"Error initializing database content: {str(e)}")
