@@ -56,9 +56,13 @@ if [ ! -f .env ]; then
     echo "Please update .env with your configuration"
 fi
 
-# Initialize the database
-echo "Initializing database..."
+# Initialize the database schema
+echo "Initializing database schema..."
 python -m src.database.setup_db
+
+# Initialize database with content
+echo "Initializing database with content..."
+python -m src.database.init_data
 
 # Start Redis
 echo "Starting Redis..."
@@ -68,4 +72,8 @@ echo "Installation complete!"
 echo "Next steps:"
 echo "1. Update the .env file with your configuration"
 echo "2. Start the application with: pragi"
-echo "3. Access the interface at http://localhost:5009" 
+echo "3. Access the interface at http://localhost:5009"
+
+# Print database content summary
+echo -e "\nInitial database content:"
+psql -d musartao -c "SELECT metadata->>'title' as title, metadata->>'author' as author FROM documents;" 
