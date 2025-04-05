@@ -38,6 +38,7 @@ logs/
 # Environment variables
 .env
 .env.*
+!.env.example
 
 # Database
 *.db
@@ -59,3 +60,7 @@ temp_uploads/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Credentials
+*credentials*.json
+*credential*.json

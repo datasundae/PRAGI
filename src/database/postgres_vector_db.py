@@ -16,38 +16,42 @@ import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from functools import lru_cache
+from dotenv import load_dotenv
 
 from ..processing.rag_document import RAGDocument
 from .db_connection import DatabaseConnection, init_db
+
+# Load environment variables
+load_dotenv()
 
 class PostgreSQLVectorDB:
     """PostgreSQL vector database with encryption and optimized search."""
     
     def __init__(
         self,
-        dbname: str = "musartao",
-        user: str = "datasundae",
-        password: str = "6AV%b9",
-        host: str = "localhost",
-        port: int = 5432,
+        dbname: str = None,
+        user: str = None,
+        password: str = None,
+        host: str = None,
+        port: int = None,
         cache_size: int = 1000
     ):
         """Initialize the PostgreSQL vector database.
         
         Args:
-            dbname: Database name
-            user: Database user
-            password: Database password
-            host: Database host
-            port: Database port
+            dbname: Database name (defaults to env var DB_NAME)
+            user: Database user (defaults to env var DB_USER)
+            password: Database password (defaults to env var DB_PASSWORD)
+            host: Database host (defaults to env var DB_HOST)
+            port: Database port (defaults to env var DB_PORT)
             cache_size: Size of the LRU cache for search results
         """
         self.conn_params = {
-            "dbname": dbname,
-            "user": user,
-            "password": password,
-            "host": host,
-            "port": port
+            "dbname": dbname or os.getenv('DB_NAME', 'musartao'),
+            "user": user or os.getenv('DB_USER', 'postgres'),
+            "password": password or os.getenv('DB_PASSWORD', ''),
+            "host": host or os.getenv('DB_HOST', 'localhost'),
+            "port": port or int(os.getenv('DB_PORT', 5432))
         }
         
         # Initialize encryption
@@ -64,8 +68,12 @@ class PostgreSQLVectorDB:
     
     def _init_encryption(self):
         """Initialize encryption key and Fernet instance."""
-        # Generate a key from a password (in production, use a secure key management system)
-        password = os.getenv('DB_ENCRYPTION_KEY', 'your-secure-password-here')
+        # Get encryption key from environment
+        encryption_key = os.getenv('DB_ENCRYPTION_KEY')
+        if not encryption_key:
+            raise ValueError("DB_ENCRYPTION_KEY environment variable is required")
+            
+        # Generate a key from the encryption key
         salt = os.urandom(16)
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
@@ -73,7 +81,7 @@ class PostgreSQLVectorDB:
             salt=salt,
             iterations=100000,
         )
-        key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+        key = base64.urlsafe_b64encode(kdf.derive(encryption_key.encode()))
         self.fernet = Fernet(key)
     
     def _encrypt_data(self, data: str) -> str:
