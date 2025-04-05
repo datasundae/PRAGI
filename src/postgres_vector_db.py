@@ -1,6 +1,7 @@
 import os
+from dotenv import load_dotenv
 import psycopg2
-from psycopg2.extras import DictCursor
+from psycopg2.extras import DictCursor, execute_values
 import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
 from .rag_document import RAGDocument
@@ -8,16 +9,30 @@ import logging
 from sentence_transformers import SentenceTransformer
 import urllib.parse
 
+# Load environment variables
+load_dotenv()
+
 class PostgreSQLVectorDB:
     def __init__(self, connection_string: Optional[str] = None):
-        """Initialize the PostgreSQL vector database connection.
+        """Initialize PostgreSQL Vector Database connection.
         
         Args:
-            connection_string: Optional connection string. If not provided,
-                            will use DATABASE_URL from environment variables.
+            connection_string: Optional database connection string. If not provided,
+                             will be constructed from environment variables.
         """
+        if not connection_string:
+            connection_string = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+        
+        try:
+            self.conn = psycopg2.connect(connection_string)
+            self.cur = self.conn.cursor()
+            logging.info("Successfully connected to PostgreSQL database")
+        except Exception as e:
+            logging.error(f"Failed to connect to database: {str(e)}")
+            raise
+        
         self.logger = logging.getLogger(__name__)
-        self.connection_string = connection_string or os.environ.get('DATABASE_URL', 'postgresql://datasundae:6AV%25b9@localhost:5432/musartao')
+        self.connection_string = connection_string
         if not self.connection_string:
             raise ValueError("Database connection string not provided")
             
@@ -40,13 +55,13 @@ class PostgreSQLVectorDB:
     
     def _init_db(self):
         """Initialize the database schema."""
-        with psycopg2.connect(self.connection_string) as conn:
-            with conn.cursor() as cur:
+        with self.conn:
+            with self.cur:
                 # Create extension for vector operations
-                cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+                self.cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
                 
                 # Create documents table if it doesn't exist
-                cur.execute("""
+                self.cur.execute("""
                     CREATE TABLE IF NOT EXISTS documents (
                         id SERIAL PRIMARY KEY,
                         content TEXT NOT NULL,
@@ -57,14 +72,14 @@ class PostgreSQLVectorDB:
                 """)
                 
                 # Create index for similarity search
-                cur.execute("""
+                self.cur.execute("""
                     CREATE INDEX IF NOT EXISTS documents_embedding_idx 
                     ON documents 
                     USING ivfflat (embedding vector_cosine_ops)
                     WITH (lists = 100);
                 """)
                 
-                conn.commit()
+                self.conn.commit()
     
     def add_document(self, document: RAGDocument, embedding: np.ndarray):
         """Add a document to the database.
@@ -73,15 +88,15 @@ class PostgreSQLVectorDB:
             document: RAGDocument object containing text and metadata
             embedding: Vector embedding of the document text
         """
-        with psycopg2.connect(self.connection_string) as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
+        with self.conn:
+            with self.cur:
+                self.cur.execute("""
                     INSERT INTO documents (content, embedding, metadata)
                     VALUES (%s, %s, %s)
                     RETURNING id;
                 """, (document.text, embedding.tolist(), document.metadata))
                 conn.commit()
-                return cur.fetchone()[0]
+                return self.cur.fetchone()[0]
     
     def search(
         self,
@@ -96,8 +111,8 @@ class PostgreSQLVectorDB:
             query_embedding = self.model.encode(query)
             self.logger.info(f"Generated embedding shape: {query_embedding.shape}")
             
-            with psycopg2.connect(**self.conn_params) as conn:
-                with conn.cursor() as cur:
+            with self.conn:
+                with self.cur:
                     # Construct SQL query
                     sql = """
                         SELECT id, content, encrypted_content, metadata, 
@@ -124,8 +139,8 @@ class PostgreSQLVectorDB:
                     self.logger.info(f"SQL: {sql}")
                     self.logger.info(f"Parameters: {params}")
                     
-                    cur.execute(sql, params)
-                    results = cur.fetchall()
+                    self.cur.execute(sql, params)
+                    results = self.cur.fetchall()
                     
                     self.logger.info(f"Found {len(results)} results")
                     
@@ -156,10 +171,10 @@ class PostgreSQLVectorDB:
         Args:
             document_id: ID of the document to delete
         """
-        with psycopg2.connect(self.connection_string) as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM documents WHERE id = %s;", (document_id,))
-                conn.commit()
+        with self.conn:
+            with self.cur:
+                self.cur.execute("DELETE FROM documents WHERE id = %s;", (document_id,))
+                self.conn.commit()
     
     def get_document(self, document_id: int) -> Optional[RAGDocument]:
         """Retrieve a document by ID.
@@ -170,8 +185,8 @@ class PostgreSQLVectorDB:
         Returns:
             RAGDocument object if found, None otherwise
         """
-        with psycopg2.connect(self.connection_string) as conn:
-            with conn.cursor(cursor_factory=DictCursor) as cur:
+        with self.conn:
+            with self.cur(cursor_factory=DictCursor) as cur:
                 cur.execute("""
                     SELECT content, metadata
                     FROM documents

@@ -88,13 +88,16 @@ except Exception as e:
     raise
 
 # Initialize vector database
-vector_db = PostgreSQLVectorDB(connection_string='postgresql://datasundae:6AV%25b9@localhost:5432/musartao')
+connection_string = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+vector_db = PostgreSQLVectorDB(connection_string=connection_string)
 
 # Initialize sentence transformer model
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
 # Google OAuth2 configuration
-CLIENT_SECRETS_FILE = 'google_client_secret_804506683754-9ogj9ju96r0e88fb6v7t7usga753hh0h.apps.googleusercontent.com.json'
+CLIENT_SECRETS_FILE = os.getenv('GOOGLE_CLIENT_SECRETS_FILE')
+if not CLIENT_SECRETS_FILE:
+    raise ValueError("GOOGLE_CLIENT_SECRETS_FILE environment variable is not set")
 
 # Load client secrets
 with open(CLIENT_SECRETS_FILE) as f:
@@ -117,7 +120,7 @@ limiter = Limiter(
     app=app,
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
-    storage_uri="redis://localhost:6379"
+    storage_uri=os.getenv('REDIS_URL', 'redis://localhost:6379')
 )
 
 def login_required(f):
