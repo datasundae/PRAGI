@@ -1,4 +1,4 @@
-# Personal RAG Interface - Project Context
+# PRAGI - Project Context
 
 ## Project Overview
 A modular RAG (Retrieval-Augmented Generation) system designed for personal document management, with a focus on maintaining clean separation of concerns and modularity.
@@ -44,6 +44,7 @@ A modular RAG (Retrieval-Augmented Generation) system designed for personal docu
 - **Purpose**: User interaction and document management
 - **Key Components**:
   - `app.py`: Flask application
+  - `templates/`: HTML templates
 - **Responsibilities**:
   - Document upload
   - Search interface
@@ -62,6 +63,7 @@ A modular RAG (Retrieval-Augmented Generation) system designed for personal docu
 - Secure file handling
 - Input validation
 - Access control
+- Environment variable configuration
 
 ## Dependencies
 - PostgreSQL with pgvector extension

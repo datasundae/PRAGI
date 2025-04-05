@@ -1,4 +1,4 @@
-# Personal RAG Interface
+# PRAGI (Personal RAG Interface)
 
 A modular RAG (Retrieval-Augmented Generation) system designed for personal document management, with a focus on maintaining clean separation of concerns and modularity.
 
@@ -13,23 +13,22 @@ A modular RAG (Retrieval-Augmented Generation) system designed for personal docu
 ## Project Structure
 
 ```
-Personal_RAG_Interface/
 ├── src/
 │   ├── database/      # Database operations
 │   ├── processing/    # Document processing
-│   ├── config/        # Configuration
-│   └── web/          # Web interface
-├── docs/             # Documentation
-├── tests/            # Test files
-└── setup.py          # Package setup
+│   ├── web/          # Web interface
+│   └── tests/        # Test files
+├── templates/        # HTML templates
+├── docs/            # Documentation
+└── setup.py         # Package setup
 ```
 
 ## Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/datasundae/Personal_RAG_Interface.git
-cd Personal_RAG_Interface
+git clone https://github.com/datasundae/PRAGI.git
+cd PRAGI
 ```
 
 2. Create and activate a virtual environment:
@@ -40,13 +39,13 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 3. Install dependencies:
 ```bash
-pip install -e .
+pip install -r requirements.txt
 ```
 
 4. Set up the database:
 ```bash
 # Configure PostgreSQL with pgvector extension
-# Update config.py with your database credentials
+# Copy sample.env to .env and update with your credentials
 ```
 
 ## Usage
@@ -56,7 +55,7 @@ pip install -e .
 python -m src.web.app
 ```
 
-2. Access the interface at `http://localhost:5000`
+2. Access the interface at `http://localhost:5009`
 
 ## Documentation
 

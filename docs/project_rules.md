@@ -1,18 +1,17 @@
-# Personal RAG Interface - Project Rules
+# PRAGI - Project Rules
 
 ## Code Organization
 
 ### Directory Structure
 ```
-Personal_RAG_Interface/
 ├── src/
 │   ├── database/      # Database operations
 │   ├── processing/    # Document processing
-│   ├── config/        # Configuration
-│   └── web/          # Web interface
-├── docs/             # Documentation
-├── tests/            # Test files
-└── setup.py          # Package setup
+│   ├── web/          # Web interface
+│   └── tests/        # Test files
+├── templates/        # HTML templates
+├── docs/            # Documentation
+└── setup.py         # Package setup
 ```
 
 ### Module Rules
