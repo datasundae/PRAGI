@@ -172,9 +172,9 @@ def get_relevant_context(query: str) -> List[str]:
         logger.info(f"Attempting to retrieve context from books database...")
         logger.info(f"Searching for context related to: {query}")
         
-        # Perform vector similarity search without metadata filter
+        # Perform vector similarity search
         logger.info("Performing vector similarity search...")
-        results = vector_db.search(query, k=5)
+        results = vector_db.search(query, k=10)  # Increased k to get more potential matches
         
         if not results:
             logger.info("No relevant documents found")
@@ -182,14 +182,23 @@ def get_relevant_context(query: str) -> List[str]:
             
         logger.info(f"Found {len(results)} relevant documents")
         
+        # Filter results by similarity threshold
+        filtered_results = [(doc, sim) for doc, sim in results if sim > 0.3]  # Only keep reasonably similar results
+        
+        if not filtered_results:
+            logger.info("No documents passed similarity threshold")
+            return []
+            
+        logger.info(f"Filtered to {len(filtered_results)} relevant documents")
+        
         # Process and return context
         context_parts = []
         total_tokens = 0
         max_tokens = 20000  # Limit total tokens to avoid OpenAI rate limits
         max_doc_tokens = 4000  # Maximum tokens per document
         
-        for i, (doc, similarity) in enumerate(results, 1):
-            logger.info(f"Processing document {i}/{len(results)}")
+        for i, (doc, similarity) in enumerate(filtered_results, 1):
+            logger.info(f"Processing document {i}/{len(filtered_results)}")
             logger.info(f"Document {i} metadata: {doc.metadata}")  # Log full metadata for debugging
             
             # Get document text from either text or content attribute
