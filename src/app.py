@@ -46,6 +46,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Debug environment variables
+logger.info(f"GOOGLE_CLIENT_ID: {os.getenv('GOOGLE_CLIENT_ID')}")
+logger.info(f"GOOGLE_CLIENT_SECRET: {os.getenv('GOOGLE_CLIENT_SECRET')}")
+logger.info(f"GOOGLE_REDIRECT_URI: {os.getenv('GOOGLE_REDIRECT_URI')}")
+
 # Allow OAuthlib to not use HTTPS for local development
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
@@ -88,16 +93,16 @@ except Exception as e:
     raise
 
 # Initialize vector database
-connection_string = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+connection_string = f"postgresql://datasundae:6AV%25b9@localhost:5432/musartao"
 vector_db = PostgreSQLVectorDB(connection_string=connection_string)
 
 # Initialize sentence transformer model
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
 # Google OAuth2 configuration
-CLIENT_SECRETS_FILE = os.getenv('GOOGLE_CLIENT_SECRETS_FILE')
-if not CLIENT_SECRETS_FILE:
-    raise ValueError("GOOGLE_CLIENT_SECRETS_FILE environment variable is not set")
+CLIENT_SECRETS_FILE = '/Users/datasundae/RAG_AI/google_client_secret_804506683754-9ogj9ju96r0e88fb6v7t7usga753hh0h.apps.googleusercontent.com.json'
+if not os.path.exists(CLIENT_SECRETS_FILE):
+    raise ValueError(f"Client secrets file not found at: {CLIENT_SECRETS_FILE}")
 
 # Load client secrets
 with open(CLIENT_SECRETS_FILE) as f:
@@ -291,8 +296,17 @@ def login():
 def google_login():
     """Redirect to Google OAuth2 login."""
     try:
-        flow = Flow.from_client_secrets_file(
-            CLIENT_SECRETS_FILE,
+        # Create OAuth2 flow using environment variables
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [GOOGLE_REDIRECT_URI]
+                }
+            },
             scopes=SCOPES,
             redirect_uri=GOOGLE_REDIRECT_URI
         )
@@ -324,8 +338,17 @@ def callback():
         logger.info(f"Retrieved state from session: {state}")
         logger.info(f"Callback URL: {request.url}")
         
-        flow = Flow.from_client_secrets_file(
-            CLIENT_SECRETS_FILE,
+        # Create OAuth2 flow using environment variables
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [GOOGLE_REDIRECT_URI]
+                }
+            },
             scopes=SCOPES,
             state=state,
             redirect_uri=GOOGLE_REDIRECT_URI
