@@ -4,10 +4,11 @@ import psycopg2
 from psycopg2.extras import DictCursor, execute_values
 import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
-from .rag_document import RAGDocument
+from database.rag_document import RAGDocument
 import logging
 from sentence_transformers import SentenceTransformer
 import urllib.parse
+import json
 
 # Load environment variables
 load_dotenv()

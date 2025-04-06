@@ -2,24 +2,24 @@
 PostgreSQL vector database implementation with optimized search capabilities.
 """
 
-import numpy as np
-from sentence_transformers import SentenceTransformer
-import psycopg2
-import psycopg2.extras
-from psycopg2.extras import execute_values
+import os
 import json
 import logging
-from typing import List, Tuple, Optional, Dict, Any
-import os
+import numpy as np
+import psycopg2
+from psycopg2.extras import execute_values
+from typing import List, Dict, Any, Optional, Tuple
+from datetime import datetime
+from src.processing.rag_document import RAGDocument
+from sentence_transformers import SentenceTransformer
+import psycopg2.extras
 from cryptography.fernet import Fernet
 import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from functools import lru_cache
 from dotenv import load_dotenv
-
-from ..processing.rag_document import RAGDocument
-from .db_connection import DatabaseConnection, init_db
+from src.database.db_connection import DatabaseConnection, init_db
 
 # Load environment variables
 load_dotenv()
@@ -389,6 +389,17 @@ class PostgreSQLVectorDB:
                     return books
         except Exception as e:
             raise ValueError(f"Error retrieving books: {str(e)}")
+    
+    def test_connection(self):
+        """Test database connectivity."""
+        try:
+            with psycopg2.connect(**self.conn_params) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+                    return True
+        except Exception as e:
+            self.logger.error(f"Error testing database connection: {str(e)}")
+            return False
 
 # Example usage
 if __name__ == "__main__":

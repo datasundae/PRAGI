@@ -12,12 +12,10 @@ from PyPDF2 import PdfReader
 import pytesseract
 from pdf2image import convert_from_path
 
-from ..config.config import DOC_CONFIG, MODEL_CONFIG
-from ..database.sqlite_vector_db import SQLiteVectorDB
-
-from .rag_document import RAGDocument
-from .pdf_processor import PDFProcessor
-from .image_processor import ImageProcessor
+from src.config.config import DOC_CONFIG, MODEL_CONFIG
+from src.processing.rag_document import RAGDocument
+from src.processing.pdf_processor import PDFProcessor
+from src.processing.image_processor import ImageProcessor
 
 from typing import List, Optional, Dict, Any, Tuple
 import PyPDF2
@@ -39,12 +37,22 @@ from PIL import Image
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+import logging
+from datetime import datetime
 
 class DocumentProcessor:
     """Process different types of documents and convert them to RAGDocument objects."""
     
-    def __init__(self):
-        """Initialize the document processor."""
+    def __init__(self, vector_db=None):
+        """Initialize the document processor.
+        
+        Args:
+            vector_db: Optional vector database instance
+        """
+        self.vector_db = vector_db
+        if vector_db is None:
+            from src.database.postgres_vector_db import PostgreSQLVectorDB
+            self.vector_db = PostgreSQLVectorDB()
         self.pdf_processor = PDFProcessor()
         self.image_processor = ImageProcessor()
     
@@ -475,7 +483,7 @@ class DocumentProcessor:
             }
             documents.append(doc)
         
-        return await self.db.add_documents(documents)
+        return await self.vector_db.add_documents(documents)
 
     async def process_directory(self, dir_path: str, metadata: Optional[Dict[str, Any]] = None) -> List[str]:
         """Process all supported files in a directory.
@@ -510,7 +518,7 @@ class DocumentProcessor:
             List of document dictionaries with similarity scores.
         """
         query_embedding = self.model.encode(query).tolist()
-        return await self.db.search_documents(query_embedding, limit)
+        return await self.vector_db.search_documents(query_embedding, limit)
 
 # Example usage
 if __name__ == "__main__":

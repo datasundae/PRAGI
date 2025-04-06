@@ -13,10 +13,30 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="pragi",
-    version="0.2.0",
+    version="0.1.0",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    install_requires=read_requirements("requirements.txt"),
+    install_requires=[
+        "flask",
+        "flask-limiter",
+        "flask-wtf",
+        "flask-session",
+        "sentence-transformers",
+        "psycopg2-binary",
+        "python-dotenv",
+        "cryptography",
+        "numpy",
+        "openai",
+        "tiktoken",
+        "google-auth",
+        "google-auth-oauthlib",
+        "google-auth-httplib2",
+        "google-api-python-client",
+        "pdf2image",
+        "beautifulsoup4",
+        "requests",
+        "werkzeug",
+    ],
     extras_require={
         "dev": [
             "pytest>=8.0.0",

@@ -46,6 +46,7 @@ Flask-Migrate==4.0.5
 Flask-Session==0.8.0
 Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.1
+Flask-Limiter==3.5.0
 fqdn==1.5.1
 fsspec==2025.3.0
 google-api-core==2.24.2
@@ -226,6 +227,5 @@ wsproto==1.2.0
 WTForms==3.2.1
 pytest==8.0.0
 pytest-cov==4.1.0
-Flask-Limiter==3.5.1
 tenacity==8.2.3
 redis==5.0.1
