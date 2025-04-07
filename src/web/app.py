@@ -48,11 +48,18 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('app.log')
+        logging.FileHandler('logs/pragi.log')
     ]
 )
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Set higher log levels for verbose modules
+logging.getLogger('sentence_transformers').setLevel(logging.WARNING)
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('src.database.postgres_vector_db').setLevel(logging.WARNING)
+logging.getLogger('src.processing.rag_document').setLevel(logging.WARNING)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 # Debug environment variables
 logger.info(f"GOOGLE_CLIENT_ID: {os.getenv('GOOGLE_CLIENT_ID')}")
@@ -508,6 +515,40 @@ def get_openai_response(client, messages, model="gpt-4-turbo-preview", temperatu
         logger.error(f"Error in OpenAI API call: {str(e)}")
         raise
 
+def log_conversation(user_message, openai_response, context=None):
+    """Log the conversation with OpenAI to a file."""
+    try:
+        # Create conversations directory if it doesn't exist
+        conversations_dir = 'logs/conversations'
+        os.makedirs(conversations_dir, exist_ok=True)
+        
+        # Create a log file with today's date
+        today = datetime.now().strftime('%Y-%m-%d')
+        log_file = os.path.join(conversations_dir, f'conversations_{today}.log')
+        
+        # Format the log entry with proper newlines
+        log_entry = f"""
+Timestamp: {datetime.now().isoformat()}
+User Message: {user_message}
+
+OpenAI Response:
+{openai_response}
+
+{'='*80}
+"""
+        
+        # Append to the log file with proper encoding
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(log_entry)
+            
+        logger.info(f"Conversation logged to {log_file}")
+        logger.debug(f"Logged message: {user_message[:100]}...")  # Log first 100 chars of message
+        logger.debug(f"Logged response length: {len(openai_response)}")  # Log response length
+    except Exception as e:
+        logger.error(f"Error logging conversation: {str(e)}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error(f"Error details: {e.__dict__ if hasattr(e, '__dict__') else 'No details available'}")
+
 @app.route('/chat', methods=['POST'])
 @login_required
 @limiter.limit("100 per minute")
@@ -525,8 +566,11 @@ def chat():
         if not message.strip():
             return jsonify({'error': 'Message cannot be empty'}), 400
 
+        logger.info(f"Processing chat request: {message}")
+        
         # Get relevant context
         context = get_relevant_context(message)
+        logger.info(f"Retrieved {len(context)} context items")
         
         # Format system message with context
         system_message = "You are a helpful AI assistant with access to a knowledge base. "
@@ -535,6 +579,8 @@ def chat():
             system_message += "\n\n".join(context)
         else:
             system_message += "No specific information found in the knowledge base for this query."
+        
+        logger.info("Attempting to call OpenAI API...")
         
         # Call OpenAI API with retry logic
         try:
@@ -547,8 +593,14 @@ def chat():
                 temperature=0.7,
                 max_tokens=1000
             )
+            logger.info("Successfully received response from OpenAI API")
+            
+            # Log the conversation
+            openai_response = response.choices[0].message.content
+            log_conversation(message, openai_response, context)
+            
             return jsonify({
-                'response': response.choices[0].message.content,
+                'response': openai_response,
                 'has_context': bool(context)
             })
             
@@ -557,10 +609,14 @@ def chat():
             return jsonify({'error': 'Service is busy. Please try again in a moment.'}), 429
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")
-            return jsonify({'error': 'Failed to generate response'}), 500
+            logger.error(f"Error type: {type(e)}")
+            logger.error(f"Error details: {e.__dict__ if hasattr(e, '__dict__') else 'No details available'}")
+            return jsonify({'error': 'Failed to generate response. Please check your OpenAI API key and connection.'}), 500
             
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error(f"Error details: {e.__dict__ if hasattr(e, '__dict__') else 'No details available'}")
         return jsonify({'error': 'Internal server error'}), 500
 
 def truncate_text(text: str, max_tokens: int) -> str:
@@ -683,6 +739,61 @@ def health_check():
         app.logger.error(f"OpenAI health check failed: {str(e)}")
     
     return jsonify(status)
+
+@app.route('/view_logs')
+@login_required
+def view_logs():
+    """View application logs."""
+    try:
+        # Get all conversation log files
+        conversations_dir = 'logs/conversations'
+        if not os.path.exists(conversations_dir):
+            return render_template('view_logs.html', logs="No conversation logs found.")
+        
+        # Get all log files in the directory (both .log and .md)
+        log_files = sorted([f for f in os.listdir(conversations_dir) if f.endswith(('.log', '.md'))], reverse=True)
+        
+        if not log_files:
+            return render_template('view_logs.html', logs="No conversation logs found.")
+        
+        # Read the most recent log file
+        latest_log = os.path.join(conversations_dir, log_files[0])
+        logger.info(f"Reading log file: {latest_log}")
+        
+        with open(latest_log, 'r', encoding='utf-8') as f:
+            log_contents = f.read()
+        
+        if not log_contents.strip():
+            return render_template('view_logs.html', logs="No conversation logs found.")
+        
+        # If it's a markdown file, pass it directly
+        if latest_log.endswith('.md'):
+            return render_template('view_logs.html', logs=log_contents)
+        
+        # For .log files, format the content and reverse the order
+        formatted_logs = []
+        current_entry = []
+        
+        for line in log_contents.split('\n'):
+            if line.startswith('Timestamp:'):
+                if current_entry:
+                    formatted_logs.append('\n'.join(current_entry))
+                    current_entry = []
+            current_entry.append(line)
+        
+        if current_entry:
+            formatted_logs.append('\n'.join(current_entry))
+        
+        # Reverse the order of entries
+        formatted_logs.reverse()
+        
+        return render_template('view_logs.html', logs='\n\n'.join(formatted_logs))
+            
+    except Exception as e:
+        logger.error(f"Error viewing logs: {str(e)}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error(f"Error details: {e.__dict__ if hasattr(e, '__dict__') else 'No details available'}")
+        return render_template('view_logs.html', logs=f"Error viewing logs: {str(e)}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5009, debug=True) 
