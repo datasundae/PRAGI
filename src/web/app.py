@@ -78,6 +78,15 @@ app.config['SESSION_USE_SIGNER'] = True
 # Initialize Flask-Session
 Session(app)
 
+# Verify Redis connection
+try:
+    redis_client = redis.from_url('redis://localhost:6379')
+    redis_client.ping()
+    logger.info("Successfully connected to Redis")
+except Exception as e:
+    logger.error(f"Failed to connect to Redis: {str(e)}")
+    raise
+
 # Initialize OpenAI client
 api_key = os.getenv('OPENAI_API_KEY')
 if not api_key:
@@ -138,16 +147,21 @@ limiter = Limiter(
 def login_required(f):
     @functools.wraps(f)
     def decorated_function(*args, **kwargs):
+        logger.info(f"Checking session in login_required: {dict(session)}")
         if not session.get('user_id'):
+            logger.warning("No user_id found in session")
             return redirect(url_for('login'))
         
         # Check domain restriction
-        email = session.get('user_id', '')  # Changed from user_email to user_id
+        email = session.get('user_id', '')
+        logger.info(f"Found user_id in session: {email}")
         domain = email.split('@')[-1] if '@' in email else ''
         if domain not in ALLOWED_DOMAINS:
+            logger.error(f"Access denied for domain: {domain}")
             session.clear()
             return redirect(url_for('login'))
             
+        logger.info("Access granted in login_required")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -343,6 +357,7 @@ def google_login():
 def callback():
     """Handle Google OAuth2 callback."""
     try:
+        logger.info(f"Callback received with session data: {dict(session)}")
         if 'state' not in session:
             logger.error("No state found in session")
             return redirect(url_for('login'))
@@ -379,6 +394,7 @@ def callback():
             credentials.id_token, requests.Request(), GOOGLE_CLIENT_ID
         )
         logger.info("ID token verified successfully")
+        logger.info(f"ID token info: {id_info}")
         
         # Check if email domain is allowed
         email = id_info['email']
@@ -389,6 +405,7 @@ def callback():
             return "Access denied. Only datasundae.com email addresses are allowed.", 403
         
         # Store user info in session
+        session.clear()  # Clear any existing session data
         session['user_id'] = email
         session['user_name'] = id_info.get('name', email)
         session['credentials'] = {
@@ -405,7 +422,13 @@ def callback():
         session.modified = True
         
         logger.info(f"Successfully logged in user: {email}")
-        logger.info(f"Session data after login: {session}")
+        logger.info(f"Session data after login: {dict(session)}")
+        
+        # Force session save
+        if hasattr(session, 'save_session'):
+            session.save_session(app, session)
+            logger.info("Session explicitly saved")
+        
         return redirect(url_for('home'))
         
     except Exception as e:
@@ -424,6 +447,7 @@ def logout():
 @app.route('/')
 @login_required
 def home():
+    logger.info(f"Accessing home route with session: {dict(session)}")
     return render_template('home.html')
 
 @app.route('/ingest', methods=['POST'])
@@ -661,4 +685,4 @@ def health_check():
     return jsonify(status)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5009) 
+    app.run(host='0.0.0.0', port=5009, debug=True) 
