@@ -70,11 +70,6 @@
             background-color: #f9fafb;
             border: 1px solid #e5e7eb;
         }
-        .error-message {
-            background-color: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #dc2626;
-        }
         .ingest-area {
             padding: 0.75rem;
             background: #f9fafb;
@@ -96,23 +91,14 @@
             border-color: #10a37f;
             box-shadow: none;
         }
-        .form-control:disabled {
-            background-color: #f3f4f6;
-            cursor: not-allowed;
-        }
         .btn-primary {
             background-color: #10a37f;
             border: none;
             font-size: 0.875rem;
             padding: 0.5rem 1rem;
-            transition: all 0.2s;
         }
-        .btn-primary:hover:not(:disabled) {
+        .btn-primary:hover {
             background-color: #0e906f;
-        }
-        .btn-primary:disabled {
-            background-color: #9ca3af;
-            cursor: not-allowed;
         }
         ::-webkit-scrollbar {
             width: 6px;
@@ -136,6 +122,7 @@
                 <span class="navbar-brand">RAG AI Assistant</span>
                 <div class="d-flex align-items-center">
                     <small class="text-muted me-2">{{ session.get('user_name', 'Guest') }}</small>
+                    <a href="{{ url_for('view_logs') }}" class="btn btn-outline-primary btn-sm me-2">View Logs</a>
                     <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Logout</a>
                 </div>
             </div>
@@ -193,13 +180,6 @@
             addMessage(message, true);
             messageInput.value = '';
 
-            // Disable input and show loading state
-            messageInput.disabled = true;
-            const submitButton = chatForm.querySelector('button[type="submit"]');
-            const originalButtonText = submitButton.textContent;
-            submitButton.disabled = true;
-            submitButton.textContent = 'Sending...';
-
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
@@ -213,17 +193,10 @@
                 if (response.ok) {
                     addMessage(data.response, false);
                 } else {
-                    const errorMessage = data.error || 'An error occurred while processing your request';
-                    addMessage('Error: ' + errorMessage, false, true);
+                    addMessage('Error: ' + data.error, false);
                 }
             } catch (error) {
-                addMessage('Error: Failed to send message. Please try again.', false, true);
-            } finally {
-                // Re-enable input and restore button state
-                messageInput.disabled = false;
-                submitButton.disabled = false;
-                submitButton.textContent = originalButtonText;
-                messageInput.focus();
+                addMessage('Error: Failed to send message', false);
             }
         });
 
@@ -233,11 +206,6 @@
             const content = document.getElementById('ingestText').value;
             const selectedPerson = personSelect.value;
             const person = selectedPerson === 'Other' ? otherPerson.value : selectedPerson;
-
-            if (!content.trim() || !person.trim()) {
-                alert('Please fill in all required fields');
-                return;
-            }
 
             try {
                 const response = await fetch('/ingest', {
@@ -257,16 +225,16 @@
                     ingestForm.reset();
                     otherPerson.style.display = 'none';
                 } else {
-                    alert('Error: ' + (data.error || 'Failed to ingest content'));
+                    alert('Error: ' + data.error);
                 }
             } catch (error) {
                 alert('Error ingesting content: ' + error);
             }
         });
 
-        function addMessage(content, isUser, isError = false) {
+        function addMessage(content, isUser) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'} ${isError ? 'error-message' : ''}`;
+            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
             messageDiv.textContent = content;
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversation Logs</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            padding: 20px;
+        }
+        .logs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .log-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .log-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .log-content {
+            padding: 20px;
+            color: #1a1a1a; /* Darker text color */
+            white-space: pre-wrap; /* Preserve whitespace */
+        }
+        .markdown-body {
+            background: none;
+            padding: 0;
+            color: #1a1a1a !important; /* Force darker text color */
+        }
+        /* Message content */
+        .markdown-body p {
+            color: #2c3e50; /* Darker paragraph color */
+            margin-bottom: 1.5em;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+        }
+        /* Add spacing between messages */
+        .markdown-body h3 {
+            color: #2c3e50; /* Darker heading color */
+            margin-top: 1.5em;
+            border-top: 1px solid #eaecef;
+            padding-top: 1em;
+        }
+        /* First message doesn't need top border */
+        .markdown-body h3:first-child {
+            margin-top: 0;
+            border-top: none;
+            padding-top: 0;
+        }
+        .navbar {
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="logs-container">
+        <nav class="navbar navbar-light">
+            <div class="container-fluid">
+                <span class="navbar-brand">Conversation Logs</span>
+                <div class="d-flex">
+                    <a href="{{ url_for('home') }}" class="btn btn-outline-primary me-2">Home</a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        {% for log in logs %}
+        <div class="log-card">
+            <div class="log-header">
+                <h5 class="mb-0">{{ log.date }}</h5>
+            </div>
+            <div class="log-content markdown-body">
+                {{ log.content | safe }}
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if not logs %}
+        <div class="log-card">
+            <div class="log-content">
+                <p class="text-center text-muted">No conversation logs found.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
