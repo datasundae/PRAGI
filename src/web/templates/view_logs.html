@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Conversation Logs</h1>
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Home</a>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    {% if logs %}
+                        <div class="conversation-log">
+                            {% if logs.startswith('# Conversation Log for') %}
+                                {# Handle markdown format #}
+                                <div class="markdown-body">
+                                    {{ logs | safe }}
+                                </div>
+                            {% else %}
+                                {# Handle plain text format #}
+                                {% set entries = logs.split('\n\n') %}
+                                {% for entry in entries %}
+                                    <div class="log-entry mb-4">
+                                        {% set lines = entry.split('\n') %}
+                                        {% for line in lines %}
+                                            {% if line.startswith('Timestamp:') %}
+                                                <div class="timestamp text-muted mb-2">
+                                                    <small>{{ line.split('Timestamp:')[1].strip() }}</small>
+                                                </div>
+                                            {% elif line.startswith('User Message:') %}
+                                                <div class="user-message mb-3">
+                                                    <h5 class="text-primary">User:</h5>
+                                                    <p class="mb-0">{{ line.split('User Message:')[1].strip() }}</p>
+                                                </div>
+                                            {% elif line.startswith('OpenAI Response:') %}
+                                                <div class="ai-message mb-3">
+                                                    <h5 class="text-success">AI Response:</h5>
+                                                    <p class="mb-0">{{ line.split('OpenAI Response:')[1].strip() }}</p>
+                                                </div>
+                                            {% elif line.startswith('Context Used:') %}
+                                                <div class="context-message mb-3">
+                                                    <h5 class="text-info">Context:</h5>
+                                                    <p class="mb-0">{{ line.split('Context Used:')[1].strip() }}</p>
+                                                </div>
+                                            {% elif line.strip() and not line.startswith('=') %}
+                                                <p class="mb-0">{{ line.strip() }}</p>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p>No conversation logs found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .conversation-log {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+    }
+    .user-message, .ai-message, .context-message {
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        margin-bottom: 20px;
+        white-space: pre-wrap;
+    }
+    .user-message {
+        border-left: 4px solid #0d6efd;
+    }
+    .ai-message {
+        border-left: 4px solid #198754;
+    }
+    .context-message {
+        border-left: 4px solid #0dcaf0;
+    }
+    h5 {
+        margin-bottom: 10px;
+    }
+    .timestamp {
+        font-size: 0.9em;
+    }
+    .markdown-body {
+        background: none;
+        padding: 0;
+    }
+    .markdown-body h3 {
+        margin-top: 1.5em;
+        border-top: 1px solid #eaecef;
+        padding-top: 1em;
+    }
+    .markdown-body h3:first-child {
+        margin-top: 0;
+        border-top: none;
+        padding-top: 0;
+    }
+</style>
+{% endblock %} 
