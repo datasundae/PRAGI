@@ -24,42 +24,47 @@ wheels/
 venv/
 ENV/
 env/
+.env
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+.DS_Store
+
+# Project specific
+instance/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.coverage.*
+coverage.xml
+*.cover
+*.log
+
+# Database
+*.db
+*.sqlite3
+*.sqlite
+
+# Redis
+dump.rdb
+
+# Large files
+*.dylib
+*.so
+*.pyd
 
 # Logs
 *.log
 logs/
 
 # Environment variables
-.env
 .env.*
 !.env.example
-
-# Database
-*.db
-*.sqlite3
-
-# Session files
-src/flask_session/
-
-# Google credentials
-google_client_secret_*.json
-
-# Data files
-data/
-
-# Project specific
-config.local.py
-temp_uploads/
-
-# OS specific
-.DS_Store
-Thumbs.db
 
 # Credentials
 *credentials*.json
